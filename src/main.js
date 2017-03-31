@@ -4,6 +4,8 @@ import Framework from './framework'
 import Noise from './noise'
 import {other} from './noise'
 
+import AllAgents from './agents.js'
+
 
 var sceneData = {
   onScene: 0
@@ -16,14 +18,14 @@ function onLoad(framework) {
   var {scene, camera, renderer, gui, stats} = framework; 
 
   // set skybox
-  // var loader = new THREE.CubeTextureLoader();
-  // var urlPrefix = './images/skymap/';
-  // var skymap = new THREE.CubeTextureLoader().load([
-  //     urlPrefix + 'px.jpg', urlPrefix + 'nx.jpg',
-  //     urlPrefix + 'py.jpg', urlPrefix + 'ny.jpg',
-  //     urlPrefix + 'pz.jpg', urlPrefix + 'nz.jpg'
-  // ] );
-  // scene.background = skymap;
+  var loader = new THREE.CubeTextureLoader();
+  var urlPrefix = './skymap/';
+  var skymap = new THREE.CubeTextureLoader().load([
+      urlPrefix + 'px.jpg', urlPrefix + 'nx.jpg',
+      urlPrefix + 'py.jpg', urlPrefix + 'ny.jpg',
+      urlPrefix + 'pz.jpg', urlPrefix + 'nz.jpg'
+  ] );
+  scene.background = skymap;
 
   // adding directional light
   var directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
@@ -39,9 +41,8 @@ function onLoad(framework) {
   // initialize a simple plane with adam's face as material
   var planeTop = new THREE.PlaneGeometry(3, 3, 3, 3);
   var planeBottom = new THREE.PlaneGeometry(3, 3, 3, 3);
-  planeTop.applyMatrix( new THREE.Matrix4().makeRotationX( Math.PI ) );
+  // make appear double sided
   planeBottom.applyMatrix( new THREE.Matrix4().makeRotationX( Math.PI ) );
-  planeBottom.applyMatrix( new THREE.Matrix4().makeRotationY( Math.PI ) );
 
   var adamMaterialOne = new THREE.ShaderMaterial({
     uniforms: {
@@ -71,6 +72,9 @@ function onLoad(framework) {
   //putting the planes together into one object
   adamPlane.add(mesh1);
   adamPlane.add(mesh2);
+  
+  // make plane horizontal
+  adamPlane.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2));
   
   scene.add(adamPlane);
 
