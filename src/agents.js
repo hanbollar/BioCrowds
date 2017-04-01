@@ -41,8 +41,8 @@ export default class AllAgents {
     console.log("AGENTS_RAD: " + AGENTS_RAD);
 
     for (var i = 0; i < this.numAgents; i++) {
-      var p = new THREE.Vector3(-1, AGENTS_HEIGHTPOS, 0);
-      var v = new THREE.Vector3(0, 0, 0);
+      var p = new THREE.Vector3(0, AGENTS_HEIGHTPOS, 1);
+      var v = new THREE.Vector3(0, 0, -1);
       var gL = new THREE.Vector3(1, 0, 0);
       var or = new THREE.Vector3(1, 0, 0);
       var s = AGENTS_RAD;
@@ -74,6 +74,10 @@ export default class AllAgents {
 
       framework.scene.add(this.allMarkers[i].mesh);
     }
+  }
+
+  createLocationsForScene() {
+    
   }
 
   updateAgentsPos() {
@@ -157,8 +161,6 @@ class Agent {
   makeMesh() {
     console.log("Agent: makeMesh");
     this.geo = new THREE.CylinderGeometry(AGENTS_RAD, AGENTS_RAD, AGENTS_HEIGHT);
-    console.log("geo: ");
-    console.log(this.geo);
     this.updateMesh();
   }
 

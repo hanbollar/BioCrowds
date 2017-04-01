@@ -3,6 +3,8 @@ const THREE = require('three'); // older modules are imported like this. You sho
 import Framework from './framework'
 import AllAgents from './agents.js'
 
+var M_PI = 3.14159265359;
+
 var adamMaterialOne;
 var adamMaterialTwo;
 var basicMaterialOne;
@@ -14,8 +16,13 @@ var planeBottom;
 var mesh1;
 var mesh2;
 
+// set up so THREE.Vector3(...) where orig pos then target pos based on
+//    num of agents currently being used
+var positionsArray = new Array();
+
 var sceneData = {
   onScene: 0,
+  usingMaterial: 0,
   materialOne: null,
   materialTwo: null,
   allAgents: null,
@@ -74,10 +81,10 @@ function createMaterials(){
 }
 
 function updateSceneMaterials(){
-  if (sceneData.onScene == 0) {
+  if (sceneData.usingMaterial == 0) {
     sceneData.materialOne = basicMaterialOne;
     sceneData.materialTwo = basicMaterialTwo;
-  } else if (sceneData.onScene == 1) {
+  } else if (sceneData.usingMaterial == 1) {
     sceneData.materialOne = adamMaterialOne;
     sceneData.materialTwo = adamMaterialTwo;
   } else {
@@ -118,8 +125,69 @@ function updateMesh() {
   scenePlane.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2));
 }
 
+/****************************************************************************/
+/****************** New Orientation for Beg Scene ***************************/
+/****************************************************************************/
+
+// set orig position and ending position based on num agents in the scene
+function buildCircleScene() {
+  var posOrig = new THREE.Vector2(0, 0, 0); 
+  var posTarget = new THREE.Vector2(0, 0, 0); 
+  var num = sceneData.nAgents;
+  var radius = 4;
+
+  positionsArray = new Array();
+
+  for (var i = 0; i < num; i++) {
+    // circle shape
+    var theta = 2*M_PI/num * i;
+    var xLoc = radius * Math.cos(theta);
+    var zLoc = radius * Math.sin(theta);
+    var xLocDest = radius * Math.cos(theta + M_PI);
+    var zLocDest = radius * Math.sin(theta + M_PI);
+
+    posOrig = new THREE.Vector3(xLoc, zLoc);
+    posTarget = new THREE.Vector3(xLocDest, zLocDest);
+
+    positionsArray.push(posOrig);
+    positionsArray.push(posTarget);
+  }
+}
+
+function buildParrallelScene() {
+  var posOrig = new THREE.Vector2(0, 0); 
+  var posTarget = new THREE.Vector2(0, 0); 
+  var num = sceneData.nAgents;
+  var dist = 1;
+  var horizDist = 8;
+  var horizOffset = horizDist/(num/4);
+
+  positionsArray = new Array();
+
+  for (var i = 0; i < num; i++) {
+    // two lines
+    var it = i;
+    var zLoc = 1;
+    var zLocDest = -1;
+    if (i > Math.floor(num/2)) {
+      it = i % Math.floor(num/2);
+      zLoc = -1;
+      zLocDest = 1;
+    }
+
+    var xLoc = horizOffset*it*zLoc;
+    var zLoc = horizOffset*it*zLocDest;
+
+    posOrig = new THREE.Vector3(xLoc, zLoc);
+    posTarget = new THREE.Vector3(xLocDest, zLocDest);
+
+    positionsArray.push(posOrig);
+    positionsArray.push(posTarget);
+  }
+}
+
 /**************************************************************************/
-/***************(** Load and onUpdate Functions ***************************/
+/****************** Load and onUpdate Functions ***************************/
 /**************************************************************************/
 
 // called after the scene loads
@@ -158,7 +226,7 @@ function onLoad(framework) {
   scene.add(scenePlane);
 
   // adding elements to the scene
-  sceneData.allAgents = new AllAgents(sceneData.nAgents, sceneData.nMarkers, sceneData.onScene, sceneData.vDebug);
+  sceneData.allAgents = new AllAgents(sceneData.nAgents, sceneData.nMarkers, sceneData.usingMaterial, sceneData.vDebug);
   sceneData.allAgents.addDataToScene(framework);
 
   // edit params and listen to changes like this
@@ -167,7 +235,7 @@ function onLoad(framework) {
     camera.updateProjectionMatrix();
   });
 
-  gui.add(sceneData, 'onScene', 0, 1).step(1).onChange(function(newVal) {
+  gui.add(sceneData, 'usingMaterial', 0, 1).step(1).onChange(function(newVal) {
     scene.remove(scenePlane);
 
     for (var i = scenePlane.children.length - 1; i >= 0; i--) {
@@ -177,6 +245,26 @@ function onLoad(framework) {
     updateSceneMaterials();
     updateMesh();
     scene.add(scenePlane);
+  });
+
+  gui.add(sceneData, 'onScene', 0, 1).step(1).onChange(function(newVal) {
+    if (sceneData.onScene == 0) {
+      buildCircleScene();
+    } else if (sceneData.onScene == 1) {
+      buildParrallelScene();
+    } else {
+      console.log("ONSCENE: NO PROPER SCENE TO BE LOADED");
+    }
+
+    console.log("TO DO: NEED TO ADD SOME UPDATES HERE PROBABLY DUE TO ORIG POSITION CHANGING");
+  });
+
+  gui.add(sceneData, 'nAgents', 1, 20).step(1).onChange(function(newVal) {
+
+
+    // TO DO
+
+
   });
 }
 
