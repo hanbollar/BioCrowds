@@ -14,7 +14,8 @@ var AGENTS_HEIGHTPOS = 0.2;
 var hashMarkerPos = null;
 
 function posToSortingNum(pos){
-  console.log("outside: posToSortingNum");
+  //console.log("outside: posToSortingNum");
+
   // pos should be given as a THREE.Vector3(...)
 
   // gridding example:
@@ -47,7 +48,7 @@ export default class AllAgents {
   }
 
   init(numAgents, numMarkers, onMat, visualDebug, allPos, allMarkerPos) {
-    console.log("allAgents: init");
+    //console.log("allAgents: init");
     this.numAgents = numAgents;
     this.numMarkers = numMarkers;
     this.onMat = onMat;
@@ -69,7 +70,8 @@ export default class AllAgents {
   }
 
   sortByPos(usingArr, len) {
-    console.log("allAgents: sortByPos");
+    // console.log("allAgents: sortByPos");
+
     // insertion sort from LEAST to GREATEST
     for (var i = 0; i < len; i++) {
         var tempVal = usingArr[i].posVal;
@@ -86,7 +88,7 @@ export default class AllAgents {
   }
 
   makeAgents() {
-    console.log("allAgents: makeAgents");
+    //console.log("allAgents: makeAgents");
 
     var j = 0;
     var origP = THREE.Vector2(0, 0);
@@ -108,7 +110,8 @@ export default class AllAgents {
   }
 
   makeMarkers() {
-    console.log("allAgents: makeMarkers");
+    //console.log("allAgents: makeMarkers");
+
     var origP = new THREE.Vector2(0, 0);
     for (var i = 0; i < this.numMarkers; i++) {
       origP = this.markerPositions[i];
@@ -122,7 +125,8 @@ export default class AllAgents {
   }
 
   addDataToScene(framework) {
-    console.log("allAgents: addDataToScene");
+    // console.log("allAgents: addDataToScene");
+
     var usingPos = new THREE.Vector3(0, 0, 0);
     var usingSize = 0;
     for (var i = 0; i < this.numAgents; i++) {
@@ -144,7 +148,7 @@ export default class AllAgents {
   }
 
   removeDataFromScene(framework) {
-    console.log("allAgents: removeDataFromScene");
+    // console.log("allAgents: removeDataFromScene");
 
     for (var i = 0; i < this.numAgents; i++) {
       framework.scene.remove(this.allAgents[i].mesh);
@@ -155,7 +159,7 @@ export default class AllAgents {
   }
 
   updateAgentsPos() {
-    console.log("allAgents: updateAgents");
+    // console.log("allAgents: updateAgents");
     
     // this clearing must be done before calling assignAgentsToMarkers
     for (var i = 0; i < this.numAgents; i++) {
@@ -174,14 +178,14 @@ export default class AllAgents {
   }
 
   assignAgentsToMarkers() {
-    console.log("allAgents: assignMarkersToAgents");
+    // console.log("allAgents: assignMarkersToAgents");
 
     // for each marker - searchForClosestAgent that is avail until all markers are assigned
     // marker knows its assigned value
     for (var i = 0; i < this.numMarkers; i++) {
       var currMarker = this.allMarkers[i];
       currMarker.occupied = false;
-      var rad = 1;
+      var rad = 0.5;
       var chosenAgent = this.searchForClosestAgent(currMarker.posVal, currMarker.pos, rad);
       chosenAgent.addMarker(currMarker);
       currMarker.occupied = true;
@@ -227,14 +231,16 @@ export default class AllAgents {
   }
 
   show() {
-    console.log("allAgents: show");
+    // console.log("allAgents: show");
+
     for (var i = 0; i < this.numMarkers; i++) {
       this.allMarkers[i].show();
     }
   };
 
   hide() {
-    console.log("allAgents: hide");
+    // console.log("allAgents: hide");
+
     for (var i = 0; i < this.numMarkers; i++) {
       this.allMarkers[i].hide();
     }
@@ -244,6 +250,12 @@ export default class AllAgents {
     // TO DO
 
     this.updateAgentsPos();
+
+    if (this.visualDebug) {
+      this.show();
+    } else {
+      this.hide();
+    }
   }
 
 };//end: AllAgents class
@@ -268,7 +280,8 @@ class Agent {
   }
 
   init(pos, vel, goalLoc, orientation, size, whichTexture) {
-    console.log("Agent: init");
+    // console.log("Agent: init");
+
     this.pos = pos;
     this.vel = vel;
     this.goalLoc = goalLoc;
@@ -287,13 +300,15 @@ class Agent {
   }
 
   makeMesh() {
-    console.log("Agent: makeMesh");
+    // console.log("Agent: makeMesh");
+
     this.geo = new THREE.CylinderGeometry(AGENTS_RAD, AGENTS_RAD, AGENTS_HEIGHT);
     this.updateMesh();
   }
 
   updateMaterials() {
-    console.log("Agent: updateMaterials");
+    // console.log("Agent: updateMaterials");
+
     if (this.whichTexture == 0) {
       this.material = mat1;
     } else if (this.whichTexture == 1) {
@@ -304,17 +319,20 @@ class Agent {
   }
 
   addMarker(m) {
-    console.log("Agent: addMarker");
+    // console.log("Agent: addMarker");
+
     this.markers.push(m);
   }
 
   resetMarkers() {
-    console.log("Agent: resetMarkers");
+    // console.log("Agent: resetMarkers");
+
     this.markers = new Array();
   }
 
   computeVelo() {
-    console.log("Agent: computeVelo");
+    // console.log("Agent: computeVelo");
+
     var numMarkers = this.markers.length;
 
     var sumMarkerDists = 0;
@@ -327,11 +345,11 @@ class Agent {
     }
 
     // accounting for case where num markers for an agent is 0 bc will be dividing by num Markers for velo calc
+    this.vel = new THREE.Vector3(0, 0, 0);
     if (numMarkers == 0) {
-      this.vel = new THREE.Vector3(0, 0, 0);
       return;
     }
-    for (var i = 0; i<numMarkers; i++) {
+    for (var i = 0; i < numMarkers; i++) {
       var onMarker = this.markers[i];
 
       var displVec_AtoM = new THREE.Vector3(onMarker.pos.x - this.pos.x,
@@ -344,29 +362,47 @@ class Agent {
                                         this.goalLoc.z - this.pos.z);
       var displ_AtoG = Math.sqrt(displVec_AtoG.x * displVec_AtoG.x + displVec_AtoG.z * displVec_AtoG.z);
 
-      var dot = Math.abs(displVec_AtoG.x * displVec_AtoM.x
-                       + displVec_AtoG.y * displVec_AtoM.y
-                       + displVec_AtoG.z * displVec_AtoM.z);
+      var dN_AtoM = new THREE.Vector3(displVec_AtoM.x, displVec_AtoM.y, displVec_AtoM.z);
+      dN_AtoM.normalize();
+      var dN_AtoG = new THREE.Vector3(displVec_AtoG.x, displVec_AtoG.y, displVec_AtoG.z);
+      dN_AtoG.normalize();
+      var dot = Math.abs(dN_AtoM.x * dN_AtoG.x + dN_AtoM.z * dN_AtoG.z);
 
-      var weight = displ_AtoM / sumMarkerDists * dot;
-      var vector = new THREE.Vector3(displVec_AtoM.x * weight, displVec_AtoM.y * weight, displ_AtoM.z * weight);
-      this.vel = vector;
+
+      var weight = Math.abs(displ_AtoM / sumMarkerDists * dot);
+      // console.log("sumMarkerDists: " + sumMarkerDists);
+      // console.log("AtoM");
+      // console.log(displVec_AtoM);
+      // console.log("weight:" + weight);
+      // console.log("this.vel:");
+      // console.log(this.vel);
+      
+      var vector = new THREE.Vector3(dN_AtoM.x * weight, dN_AtoM.y * weight, dN_AtoM.z * weight);
+      this.vel.add(vector);
     }
   }
 
   computePos() {
-    console.log("Agent: computePos");
+    // console.log("Agent: computePos");
+
+    // console.log(this.pos);
+    // // console.log(this.vel);
+
     this.pos.add(this.vel);
     this.updatePosition();
+
+    // console.log(this.pos);
   }
 
   updatePosition() {
-    console.log("Agent: updatePosition");
+    // console.log("Agent: updatePosition");
+
     this.mesh.position.set(this.pos.x, this.pos.y, this.pos.z);
   }
 
   updateMesh() {
-    console.log("Agent: updateMesh");
+    // console.log("Agent: updateMesh");
+
     this.updateMaterials();
     this.mesh = new THREE.Mesh(this.geo, this.material);
     this.updatePosition();
@@ -395,7 +431,8 @@ class Marker {
   }
 
   init(pos, occupied) {
-    console.log("Marker: init");
+    // console.log("Marker: init");
+
     this.pos = pos;
     this.occupied = occupied;
 
@@ -406,7 +443,8 @@ class Marker {
   }
 
   makeMesh() {
-    console.log("Marker: makeMesh");
+    // console.log("Marker: makeMesh");
+
     var geo = new THREE.Geometry();
     var material = new THREE.PointsMaterial( { size:.1 } );
     geo.vertices.push(new THREE.Vector3(this.pos.x, this.pos.y, this.pos.z));
@@ -415,14 +453,15 @@ class Marker {
   }
 
   show() {
-    console.log("Marker: show");
+    // console.log("Marker: show");
+
     if (this.mesh) {
       this.mesh.visible = true;
     }
   };
 
   hide() {
-    console.log("Marker: hide");
+    // console.log("Marker: hide");
     if (this.mesh) {
       this.mesh.visible = false;
     }

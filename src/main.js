@@ -30,7 +30,7 @@ var markersPositionsArray = new Array();
 // used for determining when objects will move in onUpdate
 var stepTime = 0;
 var first = true;
-var cont = false;
+var cont = true;
 
 var sceneData = {
   onScene: 0,
@@ -39,7 +39,7 @@ var sceneData = {
   materialTwo: null,
   allAgents: null,
   nAgents: 1,
-  nMarkers: 50,
+  nMarkers: 150,
   vDebug: true
 };
 
@@ -329,8 +329,10 @@ function onUpdate(framework) {
 
   stepTime += 1.0;
 
+  var timeStep = 10.0
+
   if (cont || first) {
-    if (stepTime % 60.0 == 0) {
+    if (stepTime % timeStep == 0) {
       console.log("first: " + first);
       console.log("cont: " + cont);
       sceneData.allAgents.updateAgentsPos();
