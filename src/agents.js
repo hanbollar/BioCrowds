@@ -66,11 +66,11 @@ export default class AllAgents {
     // insertion sort from LEAST to GREATEST
     var len = this.numMarkers;
     for (var i = 0; i < len; i++) {
-        var temp = allMarkers[i];
+        var temp = this.allMarkers[i];
         var tempVal = posToSortingNum(temp.pos);
         
         var cont = true;
-        for (var j = i - 1; j >= 0 && (posToSortingNum(allMarkers[i].pos) > tempVal); j--) {
+        for (var j = i - 1; j >= 0 && (posToSortingNum(this.allMarkers[i].pos) > tempVal); j--) {
           // shifting right all values that are greater than current being checked as temp
           this.allMarkers[j + 1] = this.allMarkers[j];
         }

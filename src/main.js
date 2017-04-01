@@ -193,25 +193,23 @@ function buildParrallelScene() {
   var num = sceneData.nAgents;
   var dist = 1;
   var horizDist = 8;
-  var midOffset = -horizDist/4;
-  var horizOffset = horizDist/(num/4);
+  var horizOffset = horizDist/(num/2);
 
   positionsArray = new Array();
 
   for (var i = 0; i < num; i++) {
     // two lines
     var it = i;
-    var zLoc = 1;
-    var zLocDest = -1;
-    if (i > Math.floor(num/2)) {
+    var zLoc = dist;
+    var zLocDest = -dist;
+    if (i > num/2) {
       it = i % Math.floor(num/2);
-      zLoc = -1;
-      zLocDest = 1;
-      midOffset *= 0;//-1;
+      zLoc *= -1;
+      zLocDest *= -1;
     }
 
-    var xLoc = midOffset + horizOffset*it*zLoc;
-    var xLocDest = midOffset + horizOffset*it*zLocDest;
+    var xLoc = zLocDest*Math.floor(horizDist/2) + horizOffset*it*zLoc;
+    var xLocDest = zLoc*Math.floor(horizDist/2) + horizOffset*it*zLocDest;
     console.log("xLoc: " + xLoc + " xLocDest: " + xLocDest);
 
     posOrig = new THREE.Vector3(xLoc, zLoc);
