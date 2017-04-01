@@ -97,7 +97,7 @@ export default class AllAgents {
       j += 2;
 
       var p = new THREE.Vector3(origP.x, AGENTS_HEIGHTPOS, origP.y);
-      var v = new THREE.Vector3(0, 0, -1);
+      var v = new THREE.Vector3(0, 0, 0);
       var gL = new THREE.Vector3(destP.x, AGENTS_HEIGHTPOS, destP.y);
       var or = new THREE.Vector3(1, 0, 0);
       var s = AGENTS_RAD;
@@ -113,7 +113,7 @@ export default class AllAgents {
     for (var i = 0; i < this.numMarkers; i++) {
       origP = this.markerPositions[i];
 
-      var p = new THREE.Vector3(origP.x, MARKER_HEIGHT, origP.y); //
+      var p = new THREE.Vector3(origP.x, MARKER_HEIGHT, origP.y); 
       var o = false;
       
       var m = new Marker(p, o);
@@ -179,10 +179,10 @@ export default class AllAgents {
     // for each marker - searchForClosestAgent that is avail until all markers are assigned
     // marker knows its assigned value
     for (var i = 0; i < this.numMarkers; i++) {
-      currMarker.occupied = false;
       var currMarker = this.allMarkers[i];
+      currMarker.occupied = false;
       var rad = 1;
-      var chosenAgent = searchForClosestAgent(currMarker.posVal, currMarker.pos, rad);
+      var chosenAgent = this.searchForClosestAgent(currMarker.posVal, currMarker.pos, rad);
       chosenAgent.addMarker(currMarker);
       currMarker.occupied = true;
     }
@@ -319,35 +319,50 @@ class Agent {
 
     var sumMarkerDists = 0;
     for (var i = 0; i<numMarkers; i++) {
-      sumMarkerDists += Math.abs(this.markers[i].pos - this.pos);
+      var onMarker = this.markers[i];
+      var displ = new THREE.Vector3(Math.abs(onMarker.pos.x - this.pos.x),
+                                          Math.abs(onMarker.pos.y - this.pos.y),
+                                          Math.abs(onMarker.pos.z - this.pos.z));
+      sumMarkerDists += Math.sqrt(displ.x*displ.x + displ.y*displ.y + displ.z*displ.z);
     }
 
     // accounting for case where num markers for an agent is 0 bc will be dividing by num Markers for velo calc
     if (numMarkers == 0) {
-      this.vel = 0;
+      this.vel = new THREE.Vector3(0, 0, 0);
       return;
     }
     for (var i = 0; i<numMarkers; i++) {
       var onMarker = this.markers[i];
 
-      var displVec_AtoM = Math.abs(onMarker.pos - this.pos);
+      var displVec_AtoM = new THREE.Vector3(onMarker.pos.x - this.pos.x,
+                                        onMarker.pos.y - this.pos.y,
+                                        onMarker.pos.z - this.pos.z);
       var displ_AtoM = Math.sqrt(displVec_AtoM.x * displVec_AtoM.x + displVec_AtoM.z * displVec_AtoM.z);
 
-      var displVec_AtoG = this.goalLoc - this.pos;
+      var displVec_AtoG = new THREE.Vector3(this.goalLoc.x - this.pos.x,
+                                        this.goalLoc.y - this.pos.y,
+                                        this.goalLoc.z - this.pos.z);
       var displ_AtoG = Math.sqrt(displVec_AtoG.x * displVec_AtoG.x + displVec_AtoG.z * displVec_AtoG.z);
 
-      this.vel += (displ_AToM / sumMarkerDists * Math.dot(displVec_AtoG, displVec_AtoM) );
+      var dot = Math.abs(displVec_AtoG.x * displVec_AtoM.x
+                       + displVec_AtoG.y * displVec_AtoM.y
+                       + displVec_AtoG.z * displVec_AtoM.z);
+
+      var weight = displ_AtoM / sumMarkerDists * dot;
+      var vector = new THREE.Vector3(displVec_AtoM.x * weight, displVec_AtoM.y * weight, displ_AtoM.z * weight);
+      this.vel = vector;
     }
   }
 
   computePos() {
     console.log("Agent: computePos");
-    this.pos += this.vel;
+    this.pos.add(this.vel);
+    this.updatePosition();
   }
 
   updatePosition() {
     console.log("Agent: updatePosition");
-    this.mesh.position.set(this.pos[0], this.pos[1], this.pos[2]);
+    this.mesh.position.set(this.pos.x, this.pos.y, this.pos.z);
   }
 
   updateMesh() {
@@ -394,7 +409,7 @@ class Marker {
     console.log("Marker: makeMesh");
     var geo = new THREE.Geometry();
     var material = new THREE.PointsMaterial( { size:.1 } );
-    geo.vertices.push(new THREE.Vector3(this.pos[0], this.pos[1], this.pos[2]));
+    geo.vertices.push(new THREE.Vector3(this.pos.x, this.pos.y, this.pos.z));
 
     this.mesh = new THREE.Points(geo, material);
   }
@@ -417,4 +432,4 @@ class Marker {
     // TO DO
   }
 
-};//end: Agent class
+};//end: Marker class

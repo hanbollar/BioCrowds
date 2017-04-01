@@ -27,6 +27,11 @@ var positionsArray = new Array();
 // holds THREE.Vector2(...)s
 var markersPositionsArray = new Array();
 
+// used for determining when objects will move in onUpdate
+var stepTime = 0;
+var first = true;
+var cont = false;
+
 var sceneData = {
   onScene: 0,
   usingMaterial: 0,
@@ -321,6 +326,18 @@ function onLoad(framework) {
 // called on frame updates
 function onUpdate(framework) {
   // console.log("here?");
+
+  stepTime += 1.0;
+
+  if (cont || first) {
+    if (stepTime % 60.0 == 0) {
+      console.log("first: " + first);
+      console.log("cont: " + cont);
+      sceneData.allAgents.updateAgentsPos();
+      first = false;
+      console.log("step:"+stepTime);
+    }
+  }
 }
 
 // when the scene is done initializing, it will call onLoad, then on frame updates, call onUpdate
