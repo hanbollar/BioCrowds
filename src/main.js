@@ -5,6 +5,9 @@ import AllAgents from './agents.js'
 
 var M_PI = 3.14159265359;
 
+var planeDim = 10; 
+// ^^^^ NOTE THIS IS USED IN AGENTS.JS BUT DECLARED HERE SO CHECK AGENTS.JS SORTING ALG IF EVER CHANGE DIM
+
 var adamMaterialOne;
 var adamMaterialTwo;
 var basicMaterialOne;
@@ -16,9 +19,13 @@ var planeBottom;
 var mesh1;
 var mesh2;
 
-// set up so THREE.Vector3(...) where orig pos then target pos based on
+// set up so vectors where orig pos then target pos based on
 //    num of agents currently being used
+// holds THREE.Vector2(...)s
 var positionsArray = new Array();
+// array for randomly placed marker positions
+// holds THREE.Vector2(...)s
+var markersPositionsArray = new Array();
 
 var sceneData = {
   onScene: 0,
@@ -96,8 +103,8 @@ function updateSceneMaterials(){
 
 function createMesh() {
   // initialize a simple plane with adam's face as material
-  planeTop = new THREE.PlaneGeometry(10, 10, 10, 10);
-  planeBottom = new THREE.PlaneGeometry(10, 10, 10, 10);
+  planeTop = new THREE.PlaneGeometry(planeDim, planeDim, planeDim, planeDim);
+  planeBottom = new THREE.PlaneGeometry(planeDim, planeDim, planeDim, planeDim);
   // make appear double sided
   planeBottom.applyMatrix( new THREE.Matrix4().makeRotationX( Math.PI ) );
   planeTop.applyMatrix( new THREE.Matrix4().makeRotationZ( Math.PI ));
@@ -125,9 +132,35 @@ function updateMesh() {
   scenePlane.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2));
 }
 
+function addAllDataToScene(framework) {
+  updateSceneStartPositions();
+  sceneData.allAgents = new AllAgents(sceneData.nAgents,
+                                      sceneData.nMarkers,
+                                      sceneData.usingMaterial,
+                                      sceneData.vDebug,
+                                      positionsArray,
+                                      markersPositionsArray);
+
+  sceneData.allAgents.addDataToScene(framework);
+}
+
 /****************************************************************************/
 /****************** New Orientation for Beg Scene ***************************/
 /****************************************************************************/
+
+function setUpMarkerPositions() {
+  // TO DO
+}
+
+function updateSceneStartPositions() {
+  if (sceneData.onScene == 0) {
+    buildCircleScene();
+  } else if (sceneData.onScene == 1) {
+    buildParrallelScene();
+  } else {
+    console.log("ONSCENE: NO PROPER SCENE TO BE LOADED");
+  }
+}
 
 // set orig position and ending position based on num agents in the scene
 function buildCircleScene() {
@@ -160,6 +193,7 @@ function buildParrallelScene() {
   var num = sceneData.nAgents;
   var dist = 1;
   var horizDist = 8;
+  var midOffset = -horizDist/4;
   var horizOffset = horizDist/(num/4);
 
   positionsArray = new Array();
@@ -173,10 +207,12 @@ function buildParrallelScene() {
       it = i % Math.floor(num/2);
       zLoc = -1;
       zLocDest = 1;
+      midOffset *= 0;//-1;
     }
 
-    var xLoc = horizOffset*it*zLoc;
-    var zLoc = horizOffset*it*zLocDest;
+    var xLoc = midOffset + horizOffset*it*zLoc;
+    var xLocDest = midOffset + horizOffset*it*zLocDest;
+    console.log("xLoc: " + xLoc + " xLocDest: " + xLocDest);
 
     posOrig = new THREE.Vector3(xLoc, zLoc);
     posTarget = new THREE.Vector3(xLocDest, zLocDest);
@@ -225,9 +261,11 @@ function onLoad(framework) {
   updateMesh();
   scene.add(scenePlane);
 
+  // set up markers for the scene
+  // only need to do this once bc same data reused over whole program
+  setUpMarkerPositions();
   // adding elements to the scene
-  sceneData.allAgents = new AllAgents(sceneData.nAgents, sceneData.nMarkers, sceneData.usingMaterial, sceneData.vDebug);
-  sceneData.allAgents.addDataToScene(framework);
+  addAllDataToScene(framework);
 
   // edit params and listen to changes like this
   // more information here: https://workshop.chromeexperiments.com/examples/gui/#1--Basic-Usage
@@ -248,23 +286,21 @@ function onLoad(framework) {
   });
 
   gui.add(sceneData, 'onScene', 0, 1).step(1).onChange(function(newVal) {
-    if (sceneData.onScene == 0) {
-      buildCircleScene();
-    } else if (sceneData.onScene == 1) {
-      buildParrallelScene();
-    } else {
-      console.log("ONSCENE: NO PROPER SCENE TO BE LOADED");
-    }
+    scene.remove(sceneData.allAgents);
+    sceneData.allAgents.removeDataFromScene(framework);
+
+    updateSceneStartPositions();
+    addAllDataToScene(framework);
 
     console.log("TO DO: NEED TO ADD SOME UPDATES HERE PROBABLY DUE TO ORIG POSITION CHANGING");
   });
 
   gui.add(sceneData, 'nAgents', 1, 20).step(1).onChange(function(newVal) {
+    scene.remove(sceneData.allAgents);
+    sceneData.allAgents.removeDataFromScene(framework);
 
-
-    // TO DO
-
-
+    updateSceneStartPositions();
+    addAllDataToScene(framework);
   });
 }
 

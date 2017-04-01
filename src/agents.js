@@ -11,15 +11,39 @@ var AGENTS_HEIGHT = 1.5;
 var AGENTS_RAD = AGENTS_HEIGHT / 5;
 var AGENTS_HEIGHTPOS = 0.2;
 
+var hashMarkerPos = null;
+
+function posToSortingNum(pos){
+  // pos should be given as a THREE.Vector3(...)
+
+  // gridding example:
+  // 6 7 8
+  // 3 4 5
+  // 0 1 2
+  // my variation is 10x10 therefore -
+  // for numbering: x is mag 1 & z is mag 10
+  // when added we get the proper indexing
+
+  //shift all values by half the plane's width(do the same for in length dir) so no neg values
+  // PLANE DIMENSION: 10x10 so using 5 for offset
+  var workingX = pos.x + 5;
+  var workingZ = pos.z + 5;
+
+  workingX = workingX % 10;
+  workingZ = 10 * Math.floor(workingZ / 10);
+
+  return workingX + workingZ;
+}
+
 /*****************************************************************/
 /************ Class for all Agents as a Collective ***************/
 /*****************************************************************/
 export default class AllAgents {
-  constructor(numAgents, numMarkers, onMat, visualDebug) {
-    this.init(numAgents, numMarkers, onMat, visualDebug);
+  constructor(numAgents, numMarkers, onMat, visualDebug, allPos, allMarkerPos) {
+    this.init(numAgents, numMarkers, onMat, visualDebug, allPos, allMarkerPos);
   }
 
-  init(numAgents, numMarkers, onMat, visualDebug) {
+  init(numAgents, numMarkers, onMat, visualDebug, allPos, allMarkerPos) {
     console.log("allAgents: init");
     this.numAgents = numAgents;
     this.numMarkers = numMarkers;
@@ -29,21 +53,48 @@ export default class AllAgents {
     this.allMarkers = new Array();
     this.allAgents = new Array();
 
+    this.allPositions = allPos;
+    this.markerPositions = allMarkerPos;
+
     this.makeMarkers();
     this.makeAgents();
+
+    this.sortMarkersByPos();
+  }
+
+  sortMarkersByPos() {
+    // insertion sort from LEAST to GREATEST
+    var len = this.numMarkers;
+    for (var i = 0; i < len; i++) {
+        var temp = allMarkers[i];
+        var tempVal = posToSortingNum(temp.pos);
+        
+        var cont = true;
+        for (var j = i - 1; j >= 0 && (posToSortingNum(allMarkers[i].pos) > tempVal); j--) {
+          // shifting right all values that are greater than current being checked as temp
+          this.allMarkers[j + 1] = this.allMarkers[j];
+        }
+
+        // inserting in corr position
+        this.allMarkers[j + 1] = temp;
+    }
+    // no need to return since sorts in place
   }
 
   makeAgents() {
     console.log("allAgents: makeAgents");
 
-    console.log("AGENTS_HEIGHT: " + AGENTS_HEIGHT);
-    console.log("AGENTS_HEIGHTPOS: " + AGENTS_HEIGHTPOS);
-    console.log("AGENTS_RAD: " + AGENTS_RAD);
-
+    var j = 0;
+    var origP = THREE.Vector2(0, 0);
+    var destP = THREE.Vector2(0, 0);
     for (var i = 0; i < this.numAgents; i++) {
-      var p = new THREE.Vector3(0, AGENTS_HEIGHTPOS, 1);
+      origP = this.allPositions[j];
+      destP = this.allPositions[j+1];
+      j += 2;
+
+      var p = new THREE.Vector3(origP.x, AGENTS_HEIGHTPOS, origP.y);
       var v = new THREE.Vector3(0, 0, -1);
-      var gL = new THREE.Vector3(1, 0, 0);
+      var gL = new THREE.Vector3(destP.x, AGENTS_HEIGHTPOS, destP.y);
       var or = new THREE.Vector3(1, 0, 0);
       var s = AGENTS_RAD;
       var m = [];
@@ -61,7 +112,6 @@ export default class AllAgents {
       usingPos = this.allAgents[i].pos;
       usingSize = this.allAgents[i].size;
       this.allAgents[i].mesh.scale.set(usingSize, usingSize, usingSize);
-      console.log(usingPos);
       this.allAgents[i].mesh.position.set( usingPos.x, usingPos.y, usingPos.z );
 
       framework.scene.add(this.allAgents[i].mesh);
@@ -76,8 +126,16 @@ export default class AllAgents {
     }
   }
 
-  createLocationsForScene() {
-    
+  removeDataFromScene(framework) {
+    console.log("allAgents: removeDataFromScene");
+
+    for (var i = 0; i < this.numAgents; i++) {
+      framework.scene.remove(this.allAgents[i].mesh);
+    }
+    for (var i = 0; i < this.numMarkers; i++) {
+      framework.scene.remove(this.allMarkers[i].mesh);
+    }
+
   }
 
   updateAgentsPos() {
