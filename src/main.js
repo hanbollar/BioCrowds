@@ -336,7 +336,8 @@ function onUpdate(framework) {
       console.log("first: " + first);
       console.log("cont: " + cont);
       sceneData.allAgents.updateAgentsPos();
-      first = false;
+      // if (!first) cont = false;
+      if (first) first = false;
       console.log("step:"+stepTime);
     }
   }

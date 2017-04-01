@@ -331,17 +331,15 @@ class Agent {
   }
 
   computeVelo() {
-    // console.log("Agent: computeVelo");
+    console.log("Agent: computeVelo");
 
     var numMarkers = this.markers.length;
 
     var sumMarkerDists = 0;
     for (var i = 0; i<numMarkers; i++) {
       var onMarker = this.markers[i];
-      var displ = new THREE.Vector3(Math.abs(onMarker.pos.x - this.pos.x),
-                                          Math.abs(onMarker.pos.y - this.pos.y),
-                                          Math.abs(onMarker.pos.z - this.pos.z));
-      sumMarkerDists += Math.sqrt(displ.x*displ.x + displ.y*displ.y + displ.z*displ.z);
+      var d = onMarker.pos.distanceTo(this.pos);
+      sumMarkerDists += d;
     }
 
     // accounting for case where num markers for an agent is 0 bc will be dividing by num Markers for velo calc
@@ -349,47 +347,68 @@ class Agent {
     if (numMarkers == 0) {
       return;
     }
+
     for (var i = 0; i < numMarkers; i++) {
       var onMarker = this.markers[i];
 
-      var displVec_AtoM = new THREE.Vector3(onMarker.pos.x - this.pos.x,
-                                        onMarker.pos.y - this.pos.y,
-                                        onMarker.pos.z - this.pos.z);
-      var displ_AtoM = Math.sqrt(displVec_AtoM.x * displVec_AtoM.x + displVec_AtoM.z * displVec_AtoM.z);
+      var displVec_AtoM = new THREE.Vector2(onMarker.pos.x - this.pos.x,
+                                            onMarker.pos.z - this.pos.z);
+      var d_AtoM = displVec_AtoM.length();
 
-      var displVec_AtoG = new THREE.Vector3(this.goalLoc.x - this.pos.x,
-                                        this.goalLoc.y - this.pos.y,
-                                        this.goalLoc.z - this.pos.z);
-      var displ_AtoG = Math.sqrt(displVec_AtoG.x * displVec_AtoG.x + displVec_AtoG.z * displVec_AtoG.z);
+      var displVec_AtoG = new THREE.Vector2(this.goalLoc.x - this.pos.x,
+                                            this.goalLoc.z - this.pos.z);
+      var d_AtoG = displVec_AtoG.length();
 
-      var dN_AtoM = new THREE.Vector3(displVec_AtoM.x, displVec_AtoM.y, displVec_AtoM.z);
-      dN_AtoM.normalize();
-      var dN_AtoG = new THREE.Vector3(displVec_AtoG.x, displVec_AtoG.y, displVec_AtoG.z);
-      dN_AtoG.normalize();
-      var dot = Math.abs(dN_AtoM.x * dN_AtoG.x + dN_AtoM.z * dN_AtoG.z);
+      var lenAM = displVec_AtoM.length();
+      var dN_AtoM = new THREE.Vector3(displVec_AtoM.x / lenAM, displVec_AtoM.y / lenAM, displVec_AtoM.z / lenAM);
+      var lenAG = displVec_AtoG.length();
+      var dN_AtoG = new THREE.Vector3(displVec_AtoG.x / lenAG, displVec_AtoG.y / lenAG, displVec_AtoG.z / lenAG);
+      var dot = dN_AtoG.dot(dN_AtoM);//Math.abs(dN_AtoM.x * dN_AtoG.x + dN_AtoM.z * dN_AtoG.z);
 
-
-      var weight = Math.abs(displ_AtoM / sumMarkerDists * dot);
+      // var dot = displVec_AtoM.dot(displVec_AtoG);
+      var weight = d_AtoM / sumMarkerDists * dot;
       // console.log("sumMarkerDists: " + sumMarkerDists);
       // console.log("AtoM");
       // console.log(displVec_AtoM);
+      // console.log("dot: " + dot);
       // console.log("weight:" + weight);
+      
+      var vector = new THREE.Vector2(displVec_AtoM.x * weight, displVec_AtoM.y * weight);
+      // console.log("vector:");
+      // console.log(vector);
+      this.vel.add(new THREE.Vector3(vector.x, 0, vector.y));
+
       // console.log("this.vel:");
       // console.log(this.vel);
-      
-      var vector = new THREE.Vector3(dN_AtoM.x * weight, dN_AtoM.y * weight, dN_AtoM.z * weight);
-      this.vel.add(vector);
     }
+
+    // clamping to min/max values for velocity
+    var min = -1;
+    var max = 1;
+    if (this.vel.x < min) this.vel.x = min;
+    else if (this.vel.x > max) this.vel.x = max;
+    if (this.vel.z < min) this.vel.z = min;
+    else if (this.vel.z > max) this.vel.z = max;
+    // console.log(this.vel);
   }
 
   computePos() {
     // console.log("Agent: computePos");
 
-    // console.log(this.pos);
-    // // console.log(this.vel);
+    console.log("BEFORE ADDING:")
+    console.log("currP: " + this.pos.x + ", " + this.pos.y + ", " + this.pos.z
+            + "\ncurrV: " + this.vel.x + ", " + this.vel.y + ", " + this.vel.z
+            + "\ngoalLoc: " + this.goalLoc.x + ", " + this.goalLoc.y + ", " + this.goalLoc.z);
 
     this.pos.add(this.vel);
     this.updatePosition();
+
+    console.log("AFTER ADDING:")
+    console.log("currP: " + this.pos.x + ", " + this.pos.y + ", " + this.pos.z
+            + "\ncurrV: " + this.vel.x + ", " + this.vel.y + ", " + this.vel.z
+            + "\ngoalLoc: " + this.goalLoc.x + ", " + this.goalLoc.y + ", " + this.goalLoc.z);
+
+    // console.log("here2");
 
     // console.log(this.pos);
   }
