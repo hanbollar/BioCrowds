@@ -6,9 +6,10 @@ var CYL_GEO_NORM = new THREE.CylinderGeometry( 5, 5, 20, 32 );
 var mat1 = new THREE.MeshBasicMaterial( {color: 0xff0000} );
 var mat2 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
 
-var MARKER_HEIGHT = 0.026;
-var AGENTS_HEIGHT = 0.5;
-
+var MARKER_HEIGHT = 0.03;
+var AGENTS_HEIGHT = 1.5;
+var AGENTS_RAD = AGENTS_HEIGHT / 5;
+var AGENTS_HEIGHTPOS = 0.2;
 
 /*****************************************************************/
 /************ Class for all Agents as a Collective ***************/
@@ -34,12 +35,17 @@ export default class AllAgents {
 
   makeAgents() {
     console.log("allAgents: makeAgents");
+
+    console.log("AGENTS_HEIGHT: " + AGENTS_HEIGHT);
+    console.log("AGENTS_HEIGHTPOS: " + AGENTS_HEIGHTPOS);
+    console.log("AGENTS_RAD: " + AGENTS_RAD);
+
     for (var i = 0; i < this.numAgents; i++) {
-      var p = new THREE.Vector3(-1, AGENTS_HEIGHT, 0);
+      var p = new THREE.Vector3(-1, AGENTS_HEIGHTPOS, 0);
       var v = new THREE.Vector3(0, 0, 0);
       var gL = new THREE.Vector3(1, 0, 0);
       var or = new THREE.Vector3(1, 0, 0);
-      var s = 1;
+      var s = AGENTS_RAD;
       var m = [];
       var wT = this.onMat;
       var a = new Agent(p, v, gL, or, s, m, wT);
@@ -55,6 +61,7 @@ export default class AllAgents {
       usingPos = this.allAgents[i].pos;
       usingSize = this.allAgents[i].size;
       this.allAgents[i].mesh.scale.set(usingSize, usingSize, usingSize);
+      console.log(usingPos);
       this.allAgents[i].mesh.position.set( usingPos.x, usingPos.y, usingPos.z );
 
       framework.scene.add(this.allAgents[i].mesh);
@@ -149,7 +156,9 @@ class Agent {
 
   makeMesh() {
     console.log("Agent: makeMesh");
-    this.geo = new THREE.CylinderGeometry(0.2, 0.2, 1);
+    this.geo = new THREE.CylinderGeometry(AGENTS_RAD, AGENTS_RAD, AGENTS_HEIGHT);
+    console.log("geo: ");
+    console.log(this.geo);
     this.updateMesh();
   }
 
