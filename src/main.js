@@ -34,7 +34,7 @@ var sceneData = {
   materialTwo: null,
   allAgents: null,
   nAgents: 1,
-  nMarkers: 1,
+  nMarkers: 50,
   vDebug: true
 };
 
@@ -149,7 +149,15 @@ function addAllDataToScene(framework) {
 /****************************************************************************/
 
 function setUpMarkerPositions() {
-  // TO DO
+  // TO DO : ignoring any obstacles
+  var offsetForGrid = 5.0;
+
+  // looping to randomly place the objs
+  for (var i = 0; i < sceneData.nMarkers; i++) {
+    var xPos = Math.random() * 10.0 - offsetForGrid;
+    var zPos = Math.random() * 10.0 - offsetForGrid;
+    markersPositionsArray.push(new THREE.Vector2(xPos, zPos));
+  }
 }
 
 function updateSceneStartPositions() {
@@ -289,8 +297,6 @@ function onLoad(framework) {
 
     updateSceneStartPositions();
     addAllDataToScene(framework);
-
-    console.log("TO DO: NEED TO ADD SOME UPDATES HERE PROBABLY DUE TO ORIG POSITION CHANGING");
   });
 
   gui.add(sceneData, 'nAgents', 1, 20).step(1).onChange(function(newVal) {
@@ -299,6 +305,16 @@ function onLoad(framework) {
 
     updateSceneStartPositions();
     addAllDataToScene(framework);
+  });
+
+  gui.add(sceneData, 'vDebug').onChange(function(value) {
+    sceneData.vDebug = value;
+    if (value) {
+      sceneData.allAgents.show();
+    } else {
+      // hides all markers
+      sceneData.allAgents.hide();
+    }
   });
 }
 

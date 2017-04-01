@@ -14,6 +14,7 @@ var AGENTS_HEIGHTPOS = 0.2;
 var hashMarkerPos = null;
 
 function posToSortingNum(pos){
+  console.log("outside: posToSortingNum");
   // pos should be given as a THREE.Vector3(...)
 
   // gridding example:
@@ -26,13 +27,15 @@ function posToSortingNum(pos){
 
   //shift all values by half the plane's width(do the same for in length dir) so no neg values
   // PLANE DIMENSION: 10x10 so using 5 for offset
-  var workingX = pos.x + 5;
-  var workingZ = pos.z + 5;
+  var workingX = Math.floor(pos.x) + 5;
+  var workingZ = Math.floor(pos.z) + 5;
 
   workingX = workingX % 10;
-  workingZ = 10 * Math.floor(workingZ / 10);
+  workingZ = 10 * Math.floor(workingZ);
 
-  return workingX + workingZ;
+  var fin = workingX + workingZ;
+
+  return fin;
 }
 
 /*****************************************************************/
@@ -59,24 +62,25 @@ export default class AllAgents {
     this.makeMarkers();
     this.makeAgents();
 
-    this.sortMarkersByPos();
+    // sorting markers for convenience
+    this.sortByPos(this.allMarkers);
+    // sorting agents for practical purposes - will be resorting every iteration
+    this.sortByPos(this.allAgents);
   }
 
-  sortMarkersByPos() {
+  sortByPos(usingArr, len) {
+    console.log("allAgents: sortByPos");
     // insertion sort from LEAST to GREATEST
-    var len = this.numMarkers;
     for (var i = 0; i < len; i++) {
-        var temp = this.allMarkers[i];
-        var tempVal = posToSortingNum(temp.pos);
+        var tempVal = usingArr[i].posVal;
         
-        var cont = true;
-        for (var j = i - 1; j >= 0 && (posToSortingNum(this.allMarkers[i].pos) > tempVal); j--) {
+        for (var j = i - 1; j >= 0 && (singArr[j].posVal > tempVal); j--) {
           // shifting right all values that are greater than current being checked as temp
-          this.allMarkers[j + 1] = this.allMarkers[j];
+          usingArr[j + 1] = usingArr[j];
         }
 
         // inserting in corr position
-        this.allMarkers[j + 1] = temp;
+        usingArr[j + 1] = temp;
     }
     // no need to return since sorts in place
   }
@@ -97,10 +101,23 @@ export default class AllAgents {
       var gL = new THREE.Vector3(destP.x, AGENTS_HEIGHTPOS, destP.y);
       var or = new THREE.Vector3(1, 0, 0);
       var s = AGENTS_RAD;
-      var m = [];
       var wT = this.onMat;
-      var a = new Agent(p, v, gL, or, s, m, wT);
+      var a = new Agent(p, v, gL, or, s, wT);
       this.allAgents.push(a);
+    }
+  }
+
+  makeMarkers() {
+    console.log("allAgents: makeMarkers");
+    var origP = new THREE.Vector2(0, 0);
+    for (var i = 0; i < this.numMarkers; i++) {
+      origP = this.markerPositions[i];
+
+      var p = new THREE.Vector3(origP.x, MARKER_HEIGHT, origP.y); //
+      var o = false;
+      
+      var m = new Marker(p, o);
+      this.allMarkers.push(m);
     }
   }
 
@@ -135,23 +152,78 @@ export default class AllAgents {
     for (var i = 0; i < this.numMarkers; i++) {
       framework.scene.remove(this.allMarkers[i].mesh);
     }
-
   }
 
   updateAgentsPos() {
     console.log("allAgents: updateAgents");
-    // TO DO
+    
+    // this clearing must be done before calling assignAgentsToMarkers
+    for (var i = 0; i < this.numAgents; i++) {
+      this.allAgents[i].resetMarkers();
+    }
+    // precondition for below: each agent's markers is empty
+    this.assignAgentsToMarkers();
+
+    // recalc agents posVal following convention
+    for (var i = 0; i < this.numAgents; i++) {
+      var onAgent = this.allAgents[i];
+      onAgent.computeVelo();
+      onAgent.computePos();
+      onAgent.posVal = posToSortingNum(this.allAgents[i].pos);
+    }
   }
 
-  makeMarkers() {
-    console.log("allAgents: makeMarkers");
+  assignAgentsToMarkers() {
+    console.log("allAgents: assignMarkersToAgents");
+
+    // for each marker - searchForClosestAgent that is avail until all markers are assigned
+    // marker knows its assigned value
     for (var i = 0; i < this.numMarkers; i++) {
-      var p = new THREE.Vector3(0, MARKER_HEIGHT, 0); //
-      var o = false;
-      
-      var m = new Marker(p, o);
-      this.allMarkers.push(m);
+      currMarker.occupied = false;
+      var currMarker = this.allMarkers[i];
+      var rad = 1;
+      var chosenAgent = searchForClosestAgent(currMarker.posVal, currMarker.pos, rad);
+      chosenAgent.addMarker(currMarker);
+      currMarker.occupied = true;
     }
+  }
+
+  withinRange(onesMin, onesMax, tensMin, tensMax, valCheck) {
+    var ones = valCheck%10;
+    var tens = Math.floor(valCheck/10);
+    return (ones >= onesMin && ones <= onesMax && tens >= tensMin && tens <= tensMax);
+  }
+
+  dist(pos1, pos2) {
+    // pos1 and pos2 are THREE.Vector3(...)
+    var ret = Math.sqrt((pos1.x - pos2.x) * (pos1.x - pos2.x) + (pos1.z - pos2.z) * (pos1.z - pos2.z));
+    return ret;
+  }
+
+  searchForClosestAgent(centerVal, centerPos, squareRad) {
+    // center val: is given as an int following the posToSortingNum convention
+    // center pos: THREE.Vector3(...) of actual position in world space
+    // square rad: radius to search for closest agent
+ 
+    // search for closest agent within the range
+    var currClosest = null;
+    // range based on convention that x: ones & z: tens
+    var rangeOnesMin = centerVal%10 - squareRad;
+    var rangeOnesMax = centerVal%10 + squareRad;
+    var rangeTensMin = Math.floor(centerVal/10) - squareRad*10;
+    var rangeTensMax = Math.floor(centerVal/10) + squareRad*10;
+
+    for (var i = 0; i < this.numAgents; i++) {
+      var temp = this.allAgents[i];
+      if (currClosest == null) {
+        currClosest = temp;
+      } else if (this.withinRange(rangeOnesMin, rangeOnesMax, rangeTensMin, rangeTensMax, temp.posVal)
+                 & this.dist(centerPos, temp.pos) < this.dist(centerPos, currClosest.pos)) {
+        currClosest = temp;
+      }
+    }
+
+    return currClosest;
   }
 
   show() {
@@ -171,11 +243,7 @@ export default class AllAgents {
   update() {
     // TO DO
 
-    if (this.visualDebug) {
-      this.show();
-    } else {
-      this.hide();
-    }
+    this.updateAgentsPos();
   }
 
 };//end: AllAgents class
@@ -195,23 +263,25 @@ class Agent {
    * Size
    * Markers
    */
-  constructor(pos, vel, goalLoc, orientation, size, markers, whichTexture) {
-    this.init(pos, vel, goalLoc, orientation, size, markers, whichTexture);
+  constructor(pos, vel, goalLoc, orientation, size, whichTexture) {
+    this.init(pos, vel, goalLoc, orientation, size, whichTexture);
   }
 
-  init(pos, vel, goalLoc, orientation, size, markers, whichTexture) {
+  init(pos, vel, goalLoc, orientation, size, whichTexture) {
     console.log("Agent: init");
     this.pos = pos;
     this.vel = vel;
     this.goalLoc = goalLoc;
     this.orientation = orientation;
     this.size = size;
-    this.markers = markers;
+    this.markers = new Array();
     this.whichTexture = whichTexture;
 
     this.mesh = null;
     this.geo = null;
     this.material = null;
+
+    this.posVal = posToSortingNum(this.pos);
       
     this.makeMesh();
   }
@@ -233,12 +303,55 @@ class Agent {
     }
   }
 
+  addMarker(m) {
+    console.log("Agent: addMarker");
+    this.markers.push(m);
+  }
+
+  resetMarkers() {
+    console.log("Agent: resetMarkers");
+    this.markers = new Array();
+  }
+
+  computeVelo() {
+    console.log("Agent: computeVelo");
+    var numMarkers = this.markers.length;
+
+    var sumMarkerDists = 0;
+    for (var i = 0; i<numMarkers; i++) {
+      sumMarkerDists += Math.abs(this.markers[i].pos - this.pos);
+    }
+
+    // accounting for case where num markers for an agent is 0 bc will be dividing by num Markers for velo calc
+    if (numMarkers == 0) {
+      this.vel = 0;
+      return;
+    }
+    for (var i = 0; i<numMarkers; i++) {
+      var onMarker = this.markers[i];
+
+      var displVec_AtoM = Math.abs(onMarker.pos - this.pos);
+      var displ_AtoM = Math.sqrt(displVec_AtoM.x * displVec_AtoM.x + displVec_AtoM.z * displVec_AtoM.z);
+
+      var displVec_AtoG = this.goalLoc - this.pos;
+      var displ_AtoG = Math.sqrt(displVec_AtoG.x * displVec_AtoG.x + displVec_AtoG.z * displVec_AtoG.z);
+
+      this.vel += (displ_AToM / sumMarkerDists * Math.dot(displVec_AtoG, displVec_AtoM) );
+    }
+  }
+
+  computePos() {
+    console.log("Agent: computePos");
+    this.pos += this.vel;
+  }
+
   updatePosition() {
     console.log("Agent: updatePosition");
     this.mesh.position.set(this.pos[0], this.pos[1], this.pos[2]);
   }
 
   updateMesh() {
+    console.log("Agent: updateMesh");
     this.updateMaterials();
     this.mesh = new THREE.Mesh(this.geo, this.material);
     this.updatePosition();
@@ -270,6 +383,8 @@ class Marker {
     console.log("Marker: init");
     this.pos = pos;
     this.occupied = occupied;
+
+    this.posVal = posToSortingNum(pos);
     
     this.makeMesh();
     this.show();
