@@ -1,54 +1,112 @@
 const THREE = require('three'); // older modules are imported like this. You shouldn't have to worry about this much
 
 var SPHERE_MATERIAL_NORM = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+var CYL_GEO_NORM = new THREE.CylinderGeometry( 5, 5, 20, 32 );
+
+var mat1 = new THREE.MeshBasicMaterial( {color: 0xff0000} );
+var mat2 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
+
+var MARKER_HEIGHT = 0.026;
+var AGENTS_HEIGHT = 0.5;
 
 
 /*****************************************************************/
 /************ Class for all Agents as a Collective ***************/
 /*****************************************************************/
 export default class AllAgents {
-  constructor(pos, radius, vel, gridWidth, visualDebug) {
-    this.init(pos, radius, vel, gridWidth, visualDebug);
+  constructor(numAgents, numMarkers, onMat, visualDebug) {
+    this.init(numAgents, numMarkers, onMat, visualDebug);
   }
 
-  init(pos, radius, vel, gridWidth, visualDebug) {
-    this.gridWidth = gridWidth;
-    this.pos = pos;
-    this.vel = vel;
+  init(numAgents, numMarkers, onMat, visualDebug) {
+    console.log("allAgents: init");
+    this.numAgents = numAgents;
+    this.numMarkers = numMarkers;
+    this.onMat = onMat;
+    this.visualDebug = visualDebug;
 
-    this.radius = radius;
-    this.radius2 = radius * radius;
-    this.mesh = null;
+    this.allMarkers = new Array();
+    this.allAgents = new Array();
 
-    if (visualDebug) {      
-      this.makeMesh();
+    this.makeMarkers();
+    this.makeAgents();
+  }
+
+  makeAgents() {
+    console.log("allAgents: makeAgents");
+    for (var i = 0; i < this.numAgents; i++) {
+      var p = new THREE.Vector3(-1, AGENTS_HEIGHT, 0);
+      var v = new THREE.Vector3(0, 0, 0);
+      var gL = new THREE.Vector3(1, 0, 0);
+      var or = new THREE.Vector3(1, 0, 0);
+      var s = 1;
+      var m = [];
+      var wT = this.onMat;
+      var a = new Agent(p, v, gL, or, s, m, wT);
+      this.allAgents.push(a);
     }
   }
 
-  makeMesh() {
-    this.mesh = new THREE.Mesh(SPHERE_GEO, LAMBERT_WHITE);
-    this.updateMeshPos();
+  addDataToScene(framework) {
+    console.log("allAgents: addDataToScene");
+    var usingPos = new THREE.Vector3(0, 0, 0);
+    var usingSize = 0;
+    for (var i = 0; i < this.numAgents; i++) {
+      usingPos = this.allAgents[i].pos;
+      usingSize = this.allAgents[i].size;
+      this.allAgents[i].mesh.scale.set(usingSize, usingSize, usingSize);
+      this.allAgents[i].mesh.position.set( usingPos.x, usingPos.y, usingPos.z );
+
+      framework.scene.add(this.allAgents[i].mesh);
+    }
+    for (var i = 0; i < this.numMarkers; i++) {
+      usingPos = this.allMarkers[i].pos;
+      usingSize = this.allMarkers[i].size;
+      this.allMarkers[i].mesh.scale.set(usingSize, usingSize, usingSize);
+      this.allMarkers[i].mesh.position.set( usingPos.x, usingPos.y, usingPos.z );
+
+      framework.scene.add(this.allMarkers[i].mesh);
+    }
   }
 
-  updateMeshPos() {
-    this.mesh.position.set(this.pos.x, this.pos.y, this.pos.z);
-    this.mesh.scale.set(this.radius, this.radius, this.radius);
+  updateAgentsPos() {
+    console.log("allAgents: updateAgents");
+    // TO DO
+  }
+
+  makeMarkers() {
+    console.log("allAgents: makeMarkers");
+    for (var i = 0; i < this.numMarkers; i++) {
+      var p = new THREE.Vector3(0, MARKER_HEIGHT, 0); //
+      var o = false;
+      
+      var m = new Marker(p, o);
+      this.allMarkers.push(m);
+    }
   }
 
   show() {
-    if (this.mesh) {
-      this.mesh.visible = true;
+    console.log("allAgents: show");
+    for (var i = 0; i < this.numMarkers; i++) {
+      this.allMarkers[i].show();
     }
   };
 
   hide() {
-    if (this.mesh) {
-      this.mesh.visible = false;
+    console.log("allAgents: hide");
+    for (var i = 0; i < this.numMarkers; i++) {
+      this.allMarkers[i].hide();
     }
   };
 
   update() {
     // TO DO
+
+    if (this.visualDebug) {
+      this.show();
+    } else {
+      this.hide();
+    }
   }
 
 };//end: AllAgents class
@@ -68,46 +126,54 @@ class Agent {
    * Size
    * Markers
    */
-  constructor(pos, vel, goalLoc, orientation, size, markers, boolTexture) {
-    this.init(pos, vel, goalLoc, orientation, size, markers, boolTexture);
+  constructor(pos, vel, goalLoc, orientation, size, markers, whichTexture) {
+    this.init(pos, vel, goalLoc, orientation, size, markers, whichTexture);
   }
 
-  init(pos, vel, goalLoc, orientation, size, markers, boolTexture) {
+  init(pos, vel, goalLoc, orientation, size, markers, whichTexture) {
+    console.log("Agent: init");
     this.pos = pos;
     this.vel = vel;
     this.goalLoc = goalLoc;
     this.orientation = orientation;
     this.size = size;
     this.markers = markers;
-    this.visualDebug = visualDebug;
+    this.whichTexture = whichTexture;
+
+    this.mesh = null;
+    this.geo = null;
+    this.material = null;
       
     this.makeMesh();
   }
 
   makeMesh() {
-
-
-
-    this.mesh = new THREE.Mesh(SPHERE_GEO, LAMBERT_WHITE);
-    this.updateMeshPos();
+    console.log("Agent: makeMesh");
+    this.geo = new THREE.CylinderGeometry(0.2, 0.2, 1);
+    this.updateMesh();
   }
 
-  updateMeshPos() {
-    this.mesh.position.set(this.pos.x, this.pos.y, this.pos.z);
-    this.mesh.scale.set(this.radius, this.radius, this.radius);
+  updateMaterials() {
+    console.log("Agent: updateMaterials");
+    if (this.whichTexture == 0) {
+      this.material = mat1;
+    } else if (this.whichTexture == 1) {
+      this.material = mat2;
+    } else {
+      console.log("main: NO PROPER MATERIAL AVAILABLE");
+    }
   }
 
-  show() {
-    if (this.mesh) {
-      this.mesh.visible = true;
-    }
-  };
+  updatePosition() {
+    console.log("Agent: updatePosition");
+    this.mesh.position.set(this.pos[0], this.pos[1], this.pos[2]);
+  }
 
-  hide() {
-    if (this.mesh) {
-      this.mesh.visible = false;
-    }
-  };
+  updateMesh() {
+    this.updateMaterials();
+    this.mesh = new THREE.Mesh(this.geo, this.material);
+    this.updatePosition();
+  }
 
   update() {
     // TO DO
@@ -127,36 +193,37 @@ class Marker {
    * occupied: bool if already used as marker for an obj or not
    * visualDebug: Bool for if seen or not
    */
-  constructor(pos, occupied, visualDebug) {
-    this.init(pos, occupied, visualDebug);
+  constructor(pos, occupied) {
+    this.init(pos, occupied);
   }
 
-  init(pos, occupied, visualDebug) {
+  init(pos, occupied) {
+    console.log("Marker: init");
     this.pos = pos;
     this.occupied = occupied;
-    this.visualDebug = visualDebug;
-
-    if (visualDebug) {      
-      this.makeMesh();
-      this.show();
-    }
+    
+    this.makeMesh();
+    this.show();
   }
 
   makeMesh() {
+    console.log("Marker: makeMesh");
     var geo = new THREE.Geometry();
     var material = new THREE.PointsMaterial( { size:.1 } );
-    geo.vertices.push(new THREE.Vector3(this.pos.x, this.pos.y, this.pos.z));
+    geo.vertices.push(new THREE.Vector3(this.pos[0], this.pos[1], this.pos[2]));
 
-    this.mesh = new THREE.Points(geo, LAMBERT_WHITE);
+    this.mesh = new THREE.Points(geo, material);
   }
 
   show() {
+    console.log("Marker: show");
     if (this.mesh) {
       this.mesh.visible = true;
     }
   };
 
   hide() {
+    console.log("Marker: hide");
     if (this.mesh) {
       this.mesh.visible = false;
     }

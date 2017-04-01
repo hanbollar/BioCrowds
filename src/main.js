@@ -1,15 +1,126 @@
 
 const THREE = require('three'); // older modules are imported like this. You shouldn't have to worry about this much
 import Framework from './framework'
-import Noise from './noise'
-import {other} from './noise'
-
 import AllAgents from './agents.js'
 
+var adamMaterialOne;
+var adamMaterialTwo;
+var basicMaterialOne;
+var basicMaterialTwo;
+
+var scenePlane;
+var planeTop;
+var planeBottom; 
+var mesh1;
+var mesh2;
 
 var sceneData = {
-  onScene: 0
+  onScene: 0,
+  materialOne: null,
+  materialTwo: null,
+  allAgents: null,
+  nAgents: 1,
+  nMarkers: 1,
+  vDebug: true
 };
+
+/**************************************************************************/
+/****************** Create and Update Functions ***************************/
+/**************************************************************************/
+
+function createMaterials(){
+  adamMaterialOne = new THREE.ShaderMaterial({
+    uniforms: {
+      image: { // Check the Three.JS documentation for the different allowed types and values
+        type: "t", 
+        value: THREE.ImageUtils.loadTexture('./adamOne.jpg')
+      }
+    },
+    vertexShader: require('./shaders/working-vert.glsl'),
+    fragmentShader: require('./shaders/working-frag.glsl'),
+  });
+
+  adamMaterialTwo = new THREE.ShaderMaterial({
+    uniforms: {
+      image: { // Check the Three.JS documentation for the different allowed types and values
+        type: "t", 
+        value: THREE.ImageUtils.loadTexture('./adamTwo.jpg')
+      }
+    },
+    vertexShader: require('./shaders/working-vert.glsl'),
+    fragmentShader: require('./shaders/working-frag.glsl'),
+  });
+
+  basicMaterialOne = new THREE.ShaderMaterial({
+    uniforms: {
+      image: { // Check the Three.JS documentation for the different allowed types and values
+        type: "t", 
+        value: THREE.ImageUtils.loadTexture('./simpleOne.jpg')
+      }
+    },
+    vertexShader: require('./shaders/working-vert.glsl'),
+    fragmentShader: require('./shaders/working-frag.glsl'),
+  });
+  basicMaterialTwo = new THREE.ShaderMaterial({
+    uniforms: {
+      image: { // Check the Three.JS documentation for the different allowed types and values
+        type: "t", 
+        value: THREE.ImageUtils.loadTexture('./simpleTwo.jpg')
+      }
+    },
+    vertexShader: require('./shaders/working-vert.glsl'),
+    fragmentShader: require('./shaders/working-frag.glsl'),
+  });
+}
+
+function updateSceneMaterials(){
+  if (sceneData.onScene == 0) {
+    sceneData.materialOne = basicMaterialOne;
+    sceneData.materialTwo = basicMaterialTwo;
+  } else if (sceneData.onScene == 1) {
+    sceneData.materialOne = adamMaterialOne;
+    sceneData.materialTwo = adamMaterialTwo;
+  } else {
+    console.log("main: NO PROPER MATERIAL AVAILABLE");
+  }
+
+  updateMesh();
+}
+
+function createMesh() {
+  // initialize a simple plane with adam's face as material
+  planeTop = new THREE.PlaneGeometry(10, 10, 10, 10);
+  planeBottom = new THREE.PlaneGeometry(10, 10, 10, 10);
+  // make appear double sided
+  planeBottom.applyMatrix( new THREE.Matrix4().makeRotationX( Math.PI ) );
+  planeTop.applyMatrix( new THREE.Matrix4().makeRotationZ( Math.PI ));
+
+  mesh1 = new THREE.Mesh(planeTop, sceneData.materialOne);
+  mesh2 = new THREE.Mesh(planeBottom, sceneData.materialOne);
+  scenePlane = new THREE.Object3D();
+  //putting the planes together into one object
+  scenePlane.add(mesh1);
+  scenePlane.add(mesh2);
+  
+  // make plane horizontal
+  scenePlane.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2));
+}
+
+function updateMesh() {
+  mesh1 = new THREE.Mesh(planeTop, sceneData.materialOne);
+  mesh2 = new THREE.Mesh(planeBottom, sceneData.materialOne);
+  scenePlane = new THREE.Object3D();
+  //putting the planes together into one object
+  scenePlane.add(mesh1);
+  scenePlane.add(mesh2);
+  
+  // make plane horizontal
+  scenePlane.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2));
+}
+
+/**************************************************************************/
+/***************(** Load and onUpdate Functions ***************************/
+/**************************************************************************/
 
 // called after the scene loads
 function onLoad(framework) {
@@ -38,45 +149,17 @@ function onLoad(framework) {
   camera.position.set(1, 1, 2);
   camera.lookAt(new THREE.Vector3(0,0,0));
 
-  // initialize a simple plane with adam's face as material
-  var planeTop = new THREE.PlaneGeometry(3, 3, 3, 3);
-  var planeBottom = new THREE.PlaneGeometry(3, 3, 3, 3);
-  // make appear double sided
-  planeBottom.applyMatrix( new THREE.Matrix4().makeRotationX( Math.PI ) );
+  // creating base scene mesh
+  createMaterials();
+  updateSceneMaterials();
 
-  var adamMaterialOne = new THREE.ShaderMaterial({
-    uniforms: {
-      image: { // Check the Three.JS documentation for the different allowed types and values
-        type: "t", 
-        value: THREE.ImageUtils.loadTexture('./adamOne.jpg')
-      }
-    },
-    vertexShader: require('./shaders/adam-vert.glsl'),
-    fragmentShader: require('./shaders/adam-frag.glsl'),
-  });
-  var adamMaterialTwo = new THREE.ShaderMaterial({
-    uniforms: {
-      image: { // Check the Three.JS documentation for the different allowed types and values
-        type: "t", 
-        value: THREE.ImageUtils.loadTexture('./adamTwo.jpg')
-      }
-    },
-    vertexShader: require('./shaders/adam-vert.glsl'),
-    fragmentShader: require('./shaders/adam-frag.glsl'),
-  });
+  createMesh();
+  updateMesh();
+  scene.add(scenePlane);
 
-  // var adamCube = new THREE.Mesh(plane, doubleAdamMaterial);
-  var mesh1 = new THREE.Mesh(planeTop, adamMaterialOne);
-  var mesh2 = new THREE.Mesh(planeBottom, adamMaterialTwo);
-  var adamPlane = new THREE.Object3D();
-  //putting the planes together into one object
-  adamPlane.add(mesh1);
-  adamPlane.add(mesh2);
-  
-  // make plane horizontal
-  adamPlane.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2));
-  
-  scene.add(adamPlane);
+  // adding elements to the scene
+  sceneData.allAgents = new AllAgents(sceneData.nAgents, sceneData.nMarkers, sceneData.onScene, sceneData.vDebug);
+  sceneData.allAgents.addDataToScene(framework);
 
   // edit params and listen to changes like this
   // more information here: https://workshop.chromeexperiments.com/examples/gui/#1--Basic-Usage
@@ -85,7 +168,15 @@ function onLoad(framework) {
   });
 
   gui.add(sceneData, 'onScene', 0, 1).step(1).onChange(function(newVal) {
-    camera.updateProjectionMatrix();
+    scene.remove(scenePlane);
+
+    for (var i = scenePlane.children.length - 1; i >= 0; i--) {
+        scenePlane.remove(scenePlane.children[i]);
+    }
+
+    updateSceneMaterials();
+    updateMesh();
+    scene.add(scenePlane);
   });
 }
 
