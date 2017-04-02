@@ -27,7 +27,7 @@ var positionsArray = new Array();
 // holds THREE.Vector2(...)s
 var markersPositionsArray = new Array();
 
-var obstacleRadius = 2;
+var obstacleRadius = 1;
 var obstacleHeight = 4;
 
 // used for determining when objects will move in onUpdate
@@ -165,21 +165,23 @@ function withinObstacle(xPos, zPos) {
   var minMargin = -obstacleRadius - margin;
   var maxMargin = obstacleRadius + margin;
   var within = ((xPos >= minMargin && xPos <= maxMargin) || (zPos >= minMargin && zPos <= maxMargin));
-  
+  console.log("within:" + within);
+
   return within;
 }
 
 function setUpMarkerPositions() {
-  // TO DO : ignoring any obstacles
+  markersPositionsArray = new Array();
   var offsetForGrid = 5.0;
 
   // looping to randomly place the objs
   for (var i = 0; i < sceneData.nMarkers; i++) {
     var xPos = Math.random() * 10.0 - offsetForGrid;
     var zPos = Math.random() * 10.0 - offsetForGrid;
-    if (!withinObstacle) {
-      markersPositionsArray.push(new THREE.Vector2(xPos, zPos));
-    }
+    //if ((sceneData.obstacle && !withinObstacle(xPos, zPos))
+    //      || !sceneData.obstacle) {
+        markersPositionsArray.push(new THREE.Vector2(xPos, zPos));
+    //}
   }
 }
 
@@ -288,14 +290,6 @@ function onLoad(framework) {
   // adding elements to the scene
   addAllDataToScene(framework);
 
-  // to make sure in scene
-  var g = new THREE.CylinderGeometry(obstacleRadius, obstacleRadius, obstacleHeight); //rad rad height
-  var m = new THREE.MeshBasicMaterial( {color: 0xffff00} );
-  sceneData.obstacleObj = new THREE.Mesh(g, m);
-  sceneData.obstacleObj.position.set(new THREE.Vector3(0, obstacleHeight/2.0, 0));
-  scene.add(sceneData.obstacleObj);
-  sceneData.obstacleObj.visible = sceneData.obstacle;
-
   // edit params and listen to changes like this
   // more information here: https://workshop.chromeexperiments.com/examples/gui/#1--Basic-Usage
   gui.add(camera, 'fov', 0, 180).onChange(function(newVal) {
@@ -351,23 +345,26 @@ function onLoad(framework) {
     sceneData.allAgents.isPaused = sceneData.isPaused;
   });
 
-  gui.add(sceneData, 'obstacle').onChange(function(value) {
-    if (sceneData.obstacle) {
-      sceneData.obstacleObj.visibile = true;
-    } else if (!sceneData.obstacle) {
-      sceneData.obstacleObj.visible = false;
-    }
+  // gui.add(sceneData, 'obstacle').onChange(function(value) {
+  //   // hiding and showing all markers
 
-    // hiding and showing all markers
-    scene.remove(sceneData.allAgents);
-    sceneData.allAgents.removeDataFromScene(framework);
+  //   if (sceneData.obstacle && sceneData.allAgents != null) {
+  //     scene.remove(sceneData.allAgents);
+  //     sceneData.allAgents.removeDataFromScene(framework);
 
-    // mark positions have to be updated bc obstacle now
-    setUpMarkerPositions();
+  //     // mark positions have to be updated bc obstacle now
 
-    updateSceneStartPositions();
-    addAllDataToScene(framework);
-  });
+  //     updateSceneStartPositions();
+  //     setUpMarkerPositions();
+  //     // doing the following to avoid having a null scene due to markers being set
+  //     //    up after the scene is created
+  //     sceneData.allAgents.markerPositions = markersPositionsArray;
+  //     sceneData.allAgents.makeMarkers();
+  //     sceneData.allAgents.sortByPos(sceneData.allMarkers);
+
+  //     addAllDataToScene(framework);
+  //   }
+  // });
 }
 
 // called on frame updates
@@ -379,6 +376,7 @@ function onUpdate(framework) {
   if (cont || first) {
     if (stepTime % timeStep == 0) {
       //console.log("first: " + first);
+      //console.log(sceneData);
       sceneData.allAgents.update();
       if (first) first = !first;
       //console.log("step:"+stepTime);
