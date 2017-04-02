@@ -15,3 +15,4 @@ Biocrowds is a crowd simulation algorithm based on the formation of veination pa
 
 ## Different Materials
 - toggle the usingMaterial bar to switch between materials
+- NOTE: visually make sure to look at the cylinders from above to get a look at the lack of intersections between the agents due to the algorithm [ie the crowd sim working properly]
