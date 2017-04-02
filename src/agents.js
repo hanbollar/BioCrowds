@@ -1,17 +1,27 @@
 const THREE = require('three'); // older modules are imported like this. You shouldn't have to worry about this much
 
-var SPHERE_MATERIAL_NORM = new THREE.MeshBasicMaterial( {color: 0xffff00} );
 var CYL_GEO_NORM = new THREE.CylinderGeometry( 5, 5, 20, 32 );
 
-var mat1 = new THREE.MeshBasicMaterial( {color: 0xff0000} );
-var mat2 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
+var mat1 = new THREE.MeshBasicMaterial( {color: 0xff22ff} );
+var mat2 = calcRandomFun();
 
 var MARKER_HEIGHT = 0.03;
-var AGENTS_HEIGHT = 1.5;
+var AGENTS_HEIGHT = 1;
 var AGENTS_RAD = AGENTS_HEIGHT / 5;
 var AGENTS_HEIGHTPOS = 0.2;
 
 var hashMarkerPos = null;
+
+function calcRandomFun() {
+  var allCols = [ new THREE.MeshBasicMaterial( {color: 0x0000ff} ),
+                  new THREE.MeshBasicMaterial( {color: 0xff00ff} ),
+                  new THREE.MeshBasicMaterial( {color: 0xff0000} ),
+                  new THREE.MeshBasicMaterial( {color: 0x00ffff} ),
+                  new THREE.MeshBasicMaterial( {color: 0x00ff00} ),
+                  new THREE.MeshBasicMaterial( {color: 0xffff00} ) ];
+
+  return allCols[Math.floor(Math.random()*6)];
+}
 
 function posToSortingNum(pos){
   //console.log("outside: posToSortingNum");
@@ -43,11 +53,11 @@ function posToSortingNum(pos){
 /************ Class for all Agents as a Collective ***************/
 /*****************************************************************/
 export default class AllAgents {
-  constructor(numAgents, numMarkers, onMat, visualDebug, allPos, allMarkerPos) {
-    this.init(numAgents, numMarkers, onMat, visualDebug, allPos, allMarkerPos);
+  constructor(numAgents, numMarkers, onMat, visualDebug, allPos, allMarkerPos, isPaused) {
+    this.init(numAgents, numMarkers, onMat, visualDebug, allPos, allMarkerPos, isPaused);
   }
 
-  init(numAgents, numMarkers, onMat, visualDebug, allPos, allMarkerPos) {
+  init(numAgents, numMarkers, onMat, visualDebug, allPos, allMarkerPos, isPaused) {
     //console.log("allAgents: init");
     this.numAgents = numAgents;
     this.numMarkers = numMarkers;
@@ -59,6 +69,8 @@ export default class AllAgents {
 
     this.allPositions = allPos;
     this.markerPositions = allMarkerPos;
+
+    this.isPaused = isPaused;
 
     this.makeMarkers();
     this.makeAgents();
@@ -249,12 +261,8 @@ export default class AllAgents {
   update() {
     // TO DO
 
-    this.updateAgentsPos();
-
-    if (this.visualDebug) {
-      this.show();
-    } else {
-      this.hide();
+    if (!this.isPaused) {
+      this.updateAgentsPos();
     }
   }
 
@@ -318,6 +326,14 @@ class Agent {
     }
   }
 
+  updateMesh() {
+    // console.log("Agent: updateMesh");
+
+    this.updateMaterials();
+    this.mesh = new THREE.Mesh(this.geo, this.material);
+    this.updatePosition();
+  }
+
   addMarker(m) {
     // console.log("Agent: addMarker");
 
@@ -331,7 +347,7 @@ class Agent {
   }
 
   computeVelo() {
-    console.log("Agent: computeVelo");
+    // console.log("Agent: computeVelo");
 
     var numMarkers = this.markers.length;
 
@@ -342,8 +358,16 @@ class Agent {
       sumMarkerDists += d;
     }
 
-    // accounting for case where num markers for an agent is 0 bc will be dividing by num Markers for velo calc
+    // zero the velocity before accumulating based on markers
     this.vel = new THREE.Vector3(0, 0, 0);
+
+    // case where if within dist to destination - velocity is now zero so it stops:
+    var distToGoal = new THREE.Vector2(this.goalLoc.x - this.pos.x, this.goalLoc.z - this.pos.z);
+    if (distToGoal.length() < 0.2) {
+      return;
+    }
+
+    // accounting for case where num markers for an agent is 0 bc will be dividing by num Markers for velo calc
     if (numMarkers == 0) {
       return;
     }
@@ -351,80 +375,44 @@ class Agent {
     for (var i = 0; i < numMarkers; i++) {
       var onMarker = this.markers[i];
 
-      var displVec_AtoM = new THREE.Vector2(onMarker.pos.x - this.pos.x,
-                                            onMarker.pos.z - this.pos.z);
+      var displVec_AtoM = new THREE.Vector2(onMarker.pos.x - this.pos.x, onMarker.pos.z - this.pos.z);
       var d_AtoM = displVec_AtoM.length();
 
-      var displVec_AtoG = new THREE.Vector2(this.goalLoc.x - this.pos.x,
-                                            this.goalLoc.z - this.pos.z);
+      var displVec_AtoG = distToGoal;
       var d_AtoG = displVec_AtoG.length();
 
       var lenAM = displVec_AtoM.length();
       var dN_AtoM = new THREE.Vector3(displVec_AtoM.x / lenAM, displVec_AtoM.y / lenAM, displVec_AtoM.z / lenAM);
       var lenAG = displVec_AtoG.length();
       var dN_AtoG = new THREE.Vector3(displVec_AtoG.x / lenAG, displVec_AtoG.y / lenAG, displVec_AtoG.z / lenAG);
-      var dot = dN_AtoG.dot(dN_AtoM);//Math.abs(dN_AtoM.x * dN_AtoG.x + dN_AtoM.z * dN_AtoG.z);
+      var dot = dN_AtoG.dot(dN_AtoM);
 
-      // var dot = displVec_AtoM.dot(displVec_AtoG);
       var weight = d_AtoM / sumMarkerDists * dot;
-      // console.log("sumMarkerDists: " + sumMarkerDists);
-      // console.log("AtoM");
-      // console.log(displVec_AtoM);
-      // console.log("dot: " + dot);
-      // console.log("weight:" + weight);
-      
       var vector = new THREE.Vector2(displVec_AtoM.x * weight, displVec_AtoM.y * weight);
-      // console.log("vector:");
-      // console.log(vector);
-      this.vel.add(new THREE.Vector3(vector.x, 0, vector.y));
 
-      // console.log("this.vel:");
-      // console.log(this.vel);
+      this.vel.add(new THREE.Vector3(vector.x, 0, vector.y));
     }
 
     // clamping to min/max values for velocity
-    var min = -1;
-    var max = 1;
+    var min = -0.05;
+    var max = 0.05;
     if (this.vel.x < min) this.vel.x = min;
     else if (this.vel.x > max) this.vel.x = max;
     if (this.vel.z < min) this.vel.z = min;
     else if (this.vel.z > max) this.vel.z = max;
-    // console.log(this.vel);
   }
 
   computePos() {
     // console.log("Agent: computePos");
 
-    console.log("BEFORE ADDING:")
-    console.log("currP: " + this.pos.x + ", " + this.pos.y + ", " + this.pos.z
-            + "\ncurrV: " + this.vel.x + ", " + this.vel.y + ", " + this.vel.z
-            + "\ngoalLoc: " + this.goalLoc.x + ", " + this.goalLoc.y + ", " + this.goalLoc.z);
-
     this.pos.add(this.vel);
     this.updatePosition();
-
-    console.log("AFTER ADDING:")
-    console.log("currP: " + this.pos.x + ", " + this.pos.y + ", " + this.pos.z
-            + "\ncurrV: " + this.vel.x + ", " + this.vel.y + ", " + this.vel.z
-            + "\ngoalLoc: " + this.goalLoc.x + ", " + this.goalLoc.y + ", " + this.goalLoc.z);
-
-    // console.log("here2");
-
-    // console.log(this.pos);
   }
 
   updatePosition() {
     // console.log("Agent: updatePosition");
 
     this.mesh.position.set(this.pos.x, this.pos.y, this.pos.z);
-  }
-
-  updateMesh() {
-    // console.log("Agent: updateMesh");
-
-    this.updateMaterials();
-    this.mesh = new THREE.Mesh(this.geo, this.material);
-    this.updatePosition();
   }
 
   update() {
@@ -466,13 +454,13 @@ class Marker {
 
     var geo = new THREE.Geometry();
     var material = new THREE.PointsMaterial( { size:.1 } );
-    geo.vertices.push(new THREE.Vector3(this.pos.x, this.pos.y, this.pos.z));
+    geo.vertices.push(new THREE.Vector3(this.pos[0], this.pos[1], this.pos[2]));
 
     this.mesh = new THREE.Points(geo, material);
   }
 
   show() {
-    // console.log("Marker: show");
+    console.log("Marker: show");
 
     if (this.mesh) {
       this.mesh.visible = true;
@@ -480,7 +468,7 @@ class Marker {
   };
 
   hide() {
-    // console.log("Marker: hide");
+    console.log("Marker: hide");
     if (this.mesh) {
       this.mesh.visible = false;
     }

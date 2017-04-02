@@ -27,6 +27,9 @@ var positionsArray = new Array();
 // holds THREE.Vector2(...)s
 var markersPositionsArray = new Array();
 
+var obstacleRadius = 2;
+var obstacleHeight = 4;
+
 // used for determining when objects will move in onUpdate
 var stepTime = 0;
 var first = true;
@@ -39,8 +42,11 @@ var sceneData = {
   materialTwo: null,
   allAgents: null,
   nAgents: 1,
-  nMarkers: 150,
-  vDebug: true
+  nMarkers: 500,
+  vDebug: true,
+  isPaused: false,
+  obstacle: false,
+  obstacleObj: null
 };
 
 /**************************************************************************/
@@ -153,6 +159,16 @@ function addAllDataToScene(framework) {
 /****************** New Orientation for Beg Scene ***************************/
 /****************************************************************************/
 
+function withinObstacle(xPos, zPos) {
+  var margin = 0.5;
+  console.log("obstacleRadius = " + obstacleRadius);
+  var minMargin = -obstacleRadius - margin;
+  var maxMargin = obstacleRadius + margin;
+  var within = ((xPos >= minMargin && xPos <= maxMargin) || (zPos >= minMargin && zPos <= maxMargin));
+  
+  return within;
+}
+
 function setUpMarkerPositions() {
   // TO DO : ignoring any obstacles
   var offsetForGrid = 5.0;
@@ -161,7 +177,9 @@ function setUpMarkerPositions() {
   for (var i = 0; i < sceneData.nMarkers; i++) {
     var xPos = Math.random() * 10.0 - offsetForGrid;
     var zPos = Math.random() * 10.0 - offsetForGrid;
-    markersPositionsArray.push(new THREE.Vector2(xPos, zPos));
+    if (!withinObstacle) {
+      markersPositionsArray.push(new THREE.Vector2(xPos, zPos));
+    }
   }
 }
 
@@ -169,7 +187,7 @@ function updateSceneStartPositions() {
   if (sceneData.onScene == 0) {
     buildCircleScene();
   } else if (sceneData.onScene == 1) {
-    buildParrallelScene();
+    buildDoubleCircleScene();
   } else {
     console.log("ONSCENE: NO PROPER SCENE TO BE LOADED");
   }
@@ -200,30 +218,22 @@ function buildCircleScene() {
   }
 }
 
-function buildParrallelScene() {
-  var posOrig = new THREE.Vector2(0, 0); 
-  var posTarget = new THREE.Vector2(0, 0); 
+function buildDoubleCircleScene() {
+  var posOrig = new THREE.Vector2(0, 0, 0); 
+  var posTarget = new THREE.Vector2(0, 0, 0); 
   var num = sceneData.nAgents;
-  var dist = 1;
-  var horizDist = 8;
-  var horizOffset = horizDist/(num/2);
+  var radiusOne = 1.5;
+  var radiusTwo = 4;
 
   positionsArray = new Array();
 
   for (var i = 0; i < num; i++) {
-    // two lines
-    var it = i;
-    var zLoc = dist;
-    var zLocDest = -dist;
-    if (i > num/2) {
-      it = i % Math.floor(num/2);
-      zLoc *= -1;
-      zLocDest *= -1;
-    }
-
-    var xLoc = zLocDest*Math.floor(horizDist/2) + horizOffset*it*zLoc;
-    var xLocDest = zLoc*Math.floor(horizDist/2) + horizOffset*it*zLocDest;
-    console.log("xLoc: " + xLoc + " xLocDest: " + xLocDest);
+    // circle shape
+    var theta = 2*M_PI/num * i;
+    var xLoc = radiusOne * Math.cos(theta);
+    var zLoc = radiusOne * Math.sin(theta);
+    var xLocDest = radiusTwo * Math.cos(theta + M_PI);
+    var zLocDest = radiusTwo * Math.sin(theta + M_PI);
 
     posOrig = new THREE.Vector3(xLoc, zLoc);
     posTarget = new THREE.Vector3(xLocDest, zLocDest);
@@ -278,6 +288,14 @@ function onLoad(framework) {
   // adding elements to the scene
   addAllDataToScene(framework);
 
+  // to make sure in scene
+  var g = new THREE.CylinderGeometry(obstacleRadius, obstacleRadius, obstacleHeight); //rad rad height
+  var m = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+  sceneData.obstacleObj = new THREE.Mesh(g, m);
+  sceneData.obstacleObj.position.set(new THREE.Vector3(0, obstacleHeight/2.0, 0));
+  scene.add(sceneData.obstacleObj);
+  sceneData.obstacleObj.visible = sceneData.obstacle;
+
   // edit params and listen to changes like this
   // more information here: https://workshop.chromeexperiments.com/examples/gui/#1--Basic-Usage
   gui.add(camera, 'fov', 0, 180).onChange(function(newVal) {
@@ -293,6 +311,13 @@ function onLoad(framework) {
 
     updateSceneMaterials();
     updateMesh();
+
+    scene.remove(sceneData.allAgents);
+    sceneData.allAgents.removeDataFromScene(framework);
+
+    updateSceneStartPositions();
+    addAllDataToScene(framework);
+
     scene.add(scenePlane);
   });
 
@@ -313,32 +338,50 @@ function onLoad(framework) {
   });
 
   gui.add(sceneData, 'vDebug').onChange(function(value) {
-    sceneData.vDebug = value;
+    // hiding and showing all markers
     if (value) {
       sceneData.allAgents.show();
     } else {
-      // hides all markers
       sceneData.allAgents.hide();
     }
+  });
+
+  gui.add(sceneData, 'isPaused').onChange(function(value) {
+    // hiding and showing all markers
+    sceneData.allAgents.isPaused = sceneData.isPaused;
+  });
+
+  gui.add(sceneData, 'obstacle').onChange(function(value) {
+    if (sceneData.obstacle) {
+      sceneData.obstacleObj.visibile = true;
+    } else if (!sceneData.obstacle) {
+      sceneData.obstacleObj.visible = false;
+    }
+
+    // hiding and showing all markers
+    scene.remove(sceneData.allAgents);
+    sceneData.allAgents.removeDataFromScene(framework);
+
+    // mark positions have to be updated bc obstacle now
+    setUpMarkerPositions();
+
+    updateSceneStartPositions();
+    addAllDataToScene(framework);
   });
 }
 
 // called on frame updates
 function onUpdate(framework) {
-  // console.log("here?");
-
   stepTime += 1.0;
 
-  var timeStep = 10.0
+  var timeStep = 5.0
 
   if (cont || first) {
     if (stepTime % timeStep == 0) {
-      console.log("first: " + first);
-      console.log("cont: " + cont);
-      sceneData.allAgents.updateAgentsPos();
-      // if (!first) cont = false;
-      if (first) first = false;
-      console.log("step:"+stepTime);
+      //console.log("first: " + first);
+      sceneData.allAgents.update();
+      if (first) first = !first;
+      //console.log("step:"+stepTime);
     }
   }
 }
