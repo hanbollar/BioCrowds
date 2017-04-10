@@ -88,13 +88,13 @@ export default class AllAgents {
     for (var i = 0; i < len; i++) {
         var tempVal = usingArr[i].posVal;
         
-        for (var j = i - 1; j >= 0 && (singArr[j].posVal > tempVal); j--) {
+        for (var j = i - 1; j >= 0 && (usingArr[j].posVal > tempVal); j--) {
           // shifting right all values that are greater than current being checked as temp
           usingArr[j + 1] = usingArr[j];
         }
 
         // inserting in corr position
-        usingArr[j + 1] = temp;
+        usingArr[i + 1] = temp;
     }
     // no need to return since sorts in place
   }
