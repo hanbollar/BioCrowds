@@ -42,7 +42,7 @@ var sceneData = {
   materialTwo: null,
   allAgents: null,
   nAgents: 1,
-  nMarkers: 500,
+  nMarkers: 5000,
   vDebug: true,
   isPaused: false,
   obstacle: false,
@@ -58,7 +58,7 @@ function createMaterials(){
     uniforms: {
       image: { // Check the Three.JS documentation for the different allowed types and values
         type: "t", 
-        value: THREE.ImageUtils.loadTexture('./adamOne.jpg')
+        value: THREE.ImageUtils.loadTexture('./blue.png')
       }
     },
     vertexShader: require('./shaders/working-vert.glsl'),
@@ -69,7 +69,7 @@ function createMaterials(){
     uniforms: {
       image: { // Check the Three.JS documentation for the different allowed types and values
         type: "t", 
-        value: THREE.ImageUtils.loadTexture('./adamTwo.jpg')
+        value: THREE.ImageUtils.loadTexture('./blue.png')
       }
     },
     vertexShader: require('./shaders/working-vert.glsl'),

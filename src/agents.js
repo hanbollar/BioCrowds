@@ -317,13 +317,13 @@ class Agent {
   updateMaterials() {
     // console.log("Agent: updateMaterials");
 
-    if (this.whichTexture == 0) {
+    //if (this.whichTexture == 0) {
       this.material = mat1;
-    } else if (this.whichTexture == 1) {
-      this.material = mat2;
-    } else {
+    //} else if (this.whichTexture == 1) {
+    //  this.material = mat2;
+    // } else {
       console.log("main: NO PROPER MATERIAL AVAILABLE");
-    }
+    // }
   }
 
   updateMesh() {
