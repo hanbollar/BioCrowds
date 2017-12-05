@@ -42,7 +42,7 @@ var sceneData = {
   materialTwo: null,
   allAgents: null,
   nAgents: 1,
-  nMarkers: 5000,
+  nMarkers: 9000,
   vDebug: true,
   isPaused: false,
   obstacle: false,
@@ -58,7 +58,7 @@ function createMaterials(){
     uniforms: {
       image: { // Check the Three.JS documentation for the different allowed types and values
         type: "t", 
-        value: THREE.ImageUtils.loadTexture('./blue.png')
+        value: THREE.ImageUtils.loadTexture('./simpleOne.png')
       }
     },
     vertexShader: require('./shaders/working-vert.glsl'),
@@ -69,7 +69,7 @@ function createMaterials(){
     uniforms: {
       image: { // Check the Three.JS documentation for the different allowed types and values
         type: "t", 
-        value: THREE.ImageUtils.loadTexture('./blue.png')
+        value: THREE.ImageUtils.loadTexture('./simpleTwo.png')
       }
     },
     vertexShader: require('./shaders/working-vert.glsl'),
@@ -80,7 +80,7 @@ function createMaterials(){
     uniforms: {
       image: { // Check the Three.JS documentation for the different allowed types and values
         type: "t", 
-        value: THREE.ImageUtils.loadTexture('./simpleOne.jpg')
+        value: THREE.ImageUtils.loadTexture('./blue.jpg')
       }
     },
     vertexShader: require('./shaders/working-vert.glsl'),
@@ -90,7 +90,7 @@ function createMaterials(){
     uniforms: {
       image: { // Check the Three.JS documentation for the different allowed types and values
         type: "t", 
-        value: THREE.ImageUtils.loadTexture('./simpleTwo.jpg')
+        value: THREE.ImageUtils.loadTexture('./blue.jpg')
       }
     },
     vertexShader: require('./shaders/working-vert.glsl'),
@@ -323,7 +323,7 @@ function onLoad(framework) {
     addAllDataToScene(framework);
   });
 
-  gui.add(sceneData, 'nAgents', 1, 20).step(1).onChange(function(newVal) {
+  gui.add(sceneData, 'nAgents', 1, 100).step(1).onChange(function(newVal) {
     scene.remove(sceneData.allAgents);
     sceneData.allAgents.removeDataFromScene(framework);
 

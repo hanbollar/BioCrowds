@@ -453,7 +453,7 @@ class Marker {
     // console.log("Marker: makeMesh");
 
     var geo = new THREE.Geometry();
-    var material = new THREE.PointsMaterial( { size:.1 } );
+    var material = new THREE.PointsMaterial( { size:.001 } );
     geo.vertices.push(new THREE.Vector3(this.pos[0], this.pos[1], this.pos[2]));
 
     this.mesh = new THREE.Points(geo, material);
