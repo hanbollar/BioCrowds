@@ -3,6 +3,8 @@ Hannah Bollar
 
 ## View the Project
 
+Note: turn off vDebug for faster runtime with larger number of agents.
+
 # [Click Here](https://hanbollar.github.io/Project7-BioCrowds/)
 
 ## The Project
